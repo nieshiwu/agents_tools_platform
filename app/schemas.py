@@ -67,6 +67,9 @@ class ValidationResult(BaseModel):
     input_schema: Optional[Dict[str, Any]] = None
     errors: List[str] = []
     suggestions: List[str] = []
+    missing_packages: List[str] = []  # 缺失的依赖包
+    installed_packages: List[str] = []  # 自动安装成功的包
+    conflict_packages: List[str] = []  # 版本冲突无法安装的包
 
 
 # MCP Schemas

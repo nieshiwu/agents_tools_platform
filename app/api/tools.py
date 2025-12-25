@@ -87,7 +87,10 @@ def validate_code(source_code: str):
         description=result.description,
         input_schema=result.input_schema,
         errors=result.errors or [],
-        suggestions=result.suggestions or []
+        suggestions=result.suggestions or [],
+        missing_packages=result.missing_packages or [],
+        installed_packages=result.installed_packages or [],
+        conflict_packages=result.conflict_packages or []
     )
 
 

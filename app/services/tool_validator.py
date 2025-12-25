@@ -8,9 +8,43 @@ Supports:
 """
 import ast
 import re
-from typing import Dict, Any, List, Optional, Tuple
-from dataclasses import dataclass
+import subprocess
+import sys
+import importlib.util
+from typing import Dict, Any, List, Optional, Tuple, Set
+from dataclasses import dataclass, field
 from app.models import ToolType
+
+
+# 标准库模块（不需要安装）
+STDLIB_MODULES = {
+    'os', 'sys', 're', 'json', 'datetime', 'time', 'math', 'random',
+    'collections', 'itertools', 'functools', 'operator', 'string',
+    'io', 'pathlib', 'tempfile', 'shutil', 'glob', 'fnmatch',
+    'pickle', 'copy', 'pprint', 'reprlib', 'enum', 'typing',
+    'dataclasses', 'abc', 'contextlib', 'decimal', 'fractions',
+    'numbers', 'cmath', 'statistics', 'hashlib', 'hmac', 'secrets',
+    'base64', 'binascii', 'struct', 'codecs', 'unicodedata',
+    'logging', 'warnings', 'traceback', 'inspect', 'dis', 'gc',
+    'weakref', 'types', 'copy', 'pprint', 'textwrap', 'difflib',
+    'html', 'xml', 'urllib', 'http', 'email', 'mailbox', 'mimetypes',
+    'csv', 'configparser', 'argparse', 'getopt', 'fileinput',
+    'sqlite3', 'zlib', 'gzip', 'bz2', 'lzma', 'zipfile', 'tarfile',
+    'socket', 'ssl', 'select', 'selectors', 'asyncio', 'signal',
+    'threading', 'multiprocessing', 'subprocess', 'sched', 'queue',
+    'uuid', 'calendar', 'locale', 'gettext', 'platform', 'errno',
+    'ctypes', 'typing_extensions', 'concurrent', 'ast', 'token',
+    'keyword', 'tokenize', 'tabnanny', 'pyclbr', 'py_compile',
+    'compileall', 'runpy', 'importlib', 'pkgutil', 'modulefinder',
+    'unittest', 'doctest', 'pdb', 'profile', 'timeit', 'trace',
+}
+
+# 平台已预装的常用包
+PREINSTALLED_PACKAGES = {
+    'langchain', 'langchain_core', 'langchain_openai', 'pydantic',
+    'requests', 'httpx', 'fastapi', 'sqlalchemy', 'pandas', 'numpy',
+    'tabulate', 'openpyxl', 'python-dotenv', 'dotenv',
+}
 
 
 @dataclass
@@ -23,12 +57,21 @@ class ValidationResult:
     input_schema: Optional[Dict[str, Any]] = None
     errors: List[str] = None
     suggestions: List[str] = None
+    missing_packages: List[str] = None  # 缺失的依赖包
+    installed_packages: List[str] = None  # 自动安装成功的包
+    conflict_packages: List[str] = None  # 版本冲突无法安装的包
     
     def __post_init__(self):
         if self.errors is None:
             self.errors = []
         if self.suggestions is None:
             self.suggestions = []
+        if self.missing_packages is None:
+            self.missing_packages = []
+        if self.installed_packages is None:
+            self.installed_packages = []
+        if self.conflict_packages is None:
+            self.conflict_packages = []
 
 
 LANGCHAIN_TOOL_SPEC = """
@@ -121,14 +164,17 @@ class ToolValidator:
                 suggestions=["请检查代码语法是否正确"]
             )
         
+        # Check for missing packages and try auto-install
+        still_missing, installed, conflicts = self._check_missing_packages(tree)
+        
         # Try to detect tool type
         has_tool_decorator = self._check_tool_decorator(tree, source_code)
         has_basetool_class = self._check_basetool_class(tree, source_code)
         
         if has_tool_decorator:
-            return self._validate_tool_function(tree, source_code)
+            result = self._validate_tool_function(tree, source_code)
         elif has_basetool_class:
-            return self._validate_basetool_class(tree, source_code)
+            result = self._validate_basetool_class(tree, source_code)
         else:
             return ValidationResult(
                 is_valid=False,
@@ -140,8 +186,33 @@ class ToolValidator:
                 suggestions=[
                     "请参考以下规范编写工具代码:",
                     self.spec
-                ]
+                ],
+                missing_packages=still_missing,
+                installed_packages=installed,
+                conflict_packages=conflicts
             )
+        
+        # Attach package info to result
+        result.missing_packages = still_missing
+        result.installed_packages = installed
+        result.conflict_packages = conflicts
+        
+        # Add suggestions based on package status
+        if installed:
+            result.suggestions.append(
+                f"✅ 已自动安装依赖包: {', '.join(installed)}"
+            )
+        if still_missing:
+            result.suggestions.append(
+                f"❌ 缺少依赖包: {', '.join(still_missing)}，请联系管理员手动安装"
+            )
+        if conflicts:
+            result.errors.append(
+                f"⚠️ 版本冲突无法安装: {', '.join(conflicts)}，这些包与现有依赖存在版本冲突，请联系管理员解决"
+            )
+            result.is_valid = False  # 版本冲突时标记为无效
+        
+        return result
     
     def _check_tool_decorator(self, tree: ast.AST, source_code: str) -> bool:
         """Check if there's a @tool decorated function"""
@@ -388,6 +459,95 @@ class ToolValidator:
                 return json_type
         
         return 'string'
+    
+    def _extract_imports(self, tree: ast.AST) -> Set[str]:
+        """Extract all top-level module names from import statements."""
+        modules: Set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    # import foo.bar -> foo
+                    modules.add(alias.name.split('.')[0])
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    # from foo.bar import x -> foo
+                    modules.add(node.module.split('.')[0])
+        return modules
+    
+    def _check_missing_packages(self, tree: ast.AST) -> Tuple[List[str], List[str], List[str]]:
+        """
+        Check which imported packages are not installed, and try to auto-install.
+        
+        Returns:
+            Tuple of (still_missing, installed, conflicts)
+        """
+        imports = self._extract_imports(tree)
+        still_missing: List[str] = []
+        installed: List[str] = []
+        conflicts: List[str] = []
+        
+        for mod in imports:
+            # 跳过标准库和预装包
+            if mod in STDLIB_MODULES or mod in PREINSTALLED_PACKAGES:
+                continue
+            # 检查是否可导入
+            if importlib.util.find_spec(mod) is None:
+                # 尝试自动安装
+                success, is_conflict = self._try_install_package(mod)
+                if success:
+                    installed.append(mod)
+                    PREINSTALLED_PACKAGES.add(mod)  # 添加到已安装列表
+                elif is_conflict:
+                    conflicts.append(mod)
+                else:
+                    still_missing.append(mod)
+        
+        return still_missing, installed, conflicts
+    
+    def _try_install_package(self, package: str) -> Tuple[bool, bool]:
+        """
+        Try to install a package using pip.
+        
+        Args:
+            package: Package name to install
+            
+        Returns:
+            Tuple of (success, is_conflict)
+            - success: True if installed successfully
+            - is_conflict: True if failed due to version conflict
+        """
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", package, "--quiet"],
+                capture_output=True,
+                text=True,
+                timeout=120  # 2分钟超时
+            )
+            
+            if result.returncode == 0:
+                # 安装成功，刷新模块缓存
+                importlib.invalidate_caches()
+                return True, False
+            
+            # 检查是否为版本冲突
+            stderr = result.stderr.lower()
+            conflict_keywords = [
+                'conflicting',
+                'incompatible',
+                'conflict',
+                'requires',
+                'but you have',
+                'dependency',
+                'resolutionimpossible',
+                'cannot install'
+            ]
+            is_conflict = any(kw in stderr for kw in conflict_keywords)
+            return False, is_conflict
+            
+        except subprocess.TimeoutExpired:
+            return False, False
+        except Exception:
+            return False, False
     
     def get_spec(self) -> str:
         """Get the LangChain tool specification"""

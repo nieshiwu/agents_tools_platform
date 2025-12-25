@@ -1,8 +1,6 @@
 """Excel 转 Markdown 工具"""
 
 import os
-import uuid
-from pathlib import Path
 from typing import Optional
 
 from langchain_core.tools import tool
@@ -16,7 +14,6 @@ def excel_to_markdown_table(
     max_cols: int = 20,
     include_index: bool = False,
     output_path: Optional[str] = None,
-    return_download_url: bool = False,
 ) -> str:
     """将指定 Excel 工作表转换为 Markdown 表格。
 
@@ -27,7 +24,6 @@ def excel_to_markdown_table(
         max_cols: 输出前多少列，避免过大结果，默认 20。
         include_index: 是否在 Markdown 中包含行索引。
         output_path: 可选的输出文件路径，若提供则会写入文件。
-        return_download_url: 是否返回下载链接（使用 /api/downloads/{token}）。
 
     Returns:
         Markdown 表格字符串；如发生错误返回可读的错误提示。
@@ -73,27 +69,14 @@ def excel_to_markdown_table(
     except Exception as exc:
         return f"错误：转换为 Markdown 失败 - {exc}"
 
-    final_output_path = output_path
-    if not final_output_path and return_download_url:
-        generated_dir = Path("generated")
-        generated_dir.mkdir(parents=True, exist_ok=True)
-        token = uuid.uuid4().hex
-        final_output_path = str(generated_dir / f"{token}.md")
-
-    if final_output_path:
+    if output_path:
         try:
-            with open(final_output_path, "w", encoding="utf-8") as md_file:
+            with open(output_path, "w", encoding="utf-8") as md_file:
                 md_file.write(markdown)
         except Exception as exc:
             return f"错误：写入输出文件失败 - {exc}"
 
     if notes:
         markdown = markdown + "\n\n" + "；".join(notes)
-
-    if return_download_url and final_output_path:
-        base_url = os.getenv("DOWNLOAD_BASE_URL", "/api/downloads")
-        token = Path(final_output_path).stem
-        download_url = f"{base_url.rstrip('/')}/{token}"
-        markdown = markdown + f"\n\n下载链接: {download_url}"
 
     return markdown
