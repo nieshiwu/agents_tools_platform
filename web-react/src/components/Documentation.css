@@ -1,0 +1,38 @@
+.documentation-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.doc-header {
+  margin-bottom: 24px;
+}
+
+.doc-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.spec-card,
+.examples-card {
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.spec-content {
+  line-height: 1.8;
+  color: #555;
+}
+
+.code-example {
+  padding: 8px 0;
+}
+
+.code-example p {
+  margin-bottom: 16px;
+  color: #666;
+}
+
+.code-example pre {
+  border-radius: 8px !important;
+}

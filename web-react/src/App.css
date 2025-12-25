@@ -1,0 +1,77 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  font-size: 28px;
+  color: #fff;
+}
+
+.logo-text {
+  color: #fff !important;
+  margin: 0 !important;
+  font-weight: 600;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+}
+
+.mcp-endpoint {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.app-sider {
+  background: #fff !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.side-menu {
+  height: calc(100vh - 64px);
+  padding-top: 16px;
+  border-right: none !important;
+}
+
+.side-menu .ant-menu-item {
+  margin: 4px 12px;
+  border-radius: 8px;
+  height: 48px;
+  line-height: 48px;
+}
+
+.side-menu .ant-menu-item-selected {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: #fff !important;
+}
+
+.side-menu .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background: #f0f2f5;
+}
+
+.app-content {
+  background: #f5f7fa;
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  overflow-y: auto;
+}

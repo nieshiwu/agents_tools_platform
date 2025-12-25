@@ -1,0 +1,47 @@
+.upload-tool-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.upload-header {
+  margin-bottom: 24px;
+}
+
+.upload-header h2 {
+  margin-bottom: 8px;
+}
+
+.upload-form-card {
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.code-input {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+}
+
+.validation-result {
+  margin-bottom: 24px;
+}
+
+.validation-result .ant-alert {
+  border-radius: 8px;
+}
+
+.error-item {
+  margin: 4px 0;
+  color: #ff4d4f;
+}
+
+.suggestions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ffccc7;
+}
+
+.form-actions {
+  margin-bottom: 0;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}

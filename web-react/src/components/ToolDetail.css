@@ -1,0 +1,39 @@
+.tool-detail-modal .ant-modal-content {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.tool-detail-modal .ant-modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px 24px;
+}
+
+.tool-detail-modal .ant-modal-title {
+  color: #fff;
+  font-weight: 600;
+}
+
+.tool-detail-modal .ant-modal-close-x {
+  color: #fff;
+}
+
+.tool-detail-modal .ant-modal-body {
+  padding: 24px;
+}
+
+.code-container {
+  max-height: 400px;
+  overflow: auto;
+  border-radius: 8px;
+}
+
+.schema-container {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.code-container pre,
+.schema-container pre {
+  margin: 0 !important;
+  border-radius: 8px !important;
+}

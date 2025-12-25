@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangChain 工具平台</title>
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+        #root {
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .mcp-endpoint {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-family: monospace;
+        }
+        
+        /* Layout */
+        .app-container {
+            display: flex;
+            min-height: calc(100vh - 64px);
+        }
+        .sidebar {
+            width: 200px;
+            background: #fff;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+            padding: 16px 0;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 24px;
+            cursor: pointer;
+            color: #333;
+            transition: all 0.3s;
+            margin: 4px 12px;
+            border-radius: 8px;
+        }
+        .menu-item:hover {
+            background: #f0f2f5;
+        }
+        .menu-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        
+        /* Tool Grid */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        @media (min-width: 1200px) {
+            .tool-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+        
+        /* Tool Card - ModelScope Style */
+        .tool-card {
+            aspect-ratio: 1;
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #e8e8e8;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .tool-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+            border-color: #667eea;
+        }
+        .tool-card-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 12px;
+            border: 2px solid #e8e8e8;
+        }
+        .tool-card.valid .tool-card-icon { border-color: #52c41a; }
+        .tool-card.invalid .tool-card-icon { border-color: #ff4d4f; }
+        .tool-card.pending .tool-card-icon { border-color: #faad14; }
+        
+        .tool-card-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            margin-bottom: 8px;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tool-card-desc {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            flex: 1;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .tool-card-status {
+            margin-top: 8px;
+        }
+        .status-tag {
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        .status-tag.valid { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .status-tag.invalid { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+        .status-tag.pending { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+        .status-tag.disabled { background: #f5f5f5; color: #8c8c8c; border: 1px solid #d9d9d9; }
+        
+        .tool-card-footer {
+            width: 100%;
+            padding-top: 8px;
+            margin-top: 8px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 11px;
+            color: #999;
+        }
+        .tool-card-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .tool-card:hover .tool-card-actions {
+            opacity: 1;
+        }
+        .action-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .action-btn.view { background: rgba(102,126,234,0.1); color: #667eea; }
+        .action-btn.view:hover { background: #667eea; color: #fff; }
+        .action-btn.delete { background: rgba(255,77,79,0.1); color: #ff4d4f; }
+        .action-btn.delete:hover { background: #ff4d4f; color: #fff; }
+        
+        /* Page Headers */
+        .page-header {
+            margin-bottom: 24px;
+        }
+        .page-header h2 {
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .page-header p {
+            color: #888;
+        }
+        
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 900px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .stat-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .stat-card .label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 600;
+        }
+        .stat-card.total .value { color: #667eea; }
+        .stat-card.valid .value { color: #52c41a; }
+        .stat-card.invalid .value { color: #ff4d4f; }
+        .stat-card.calls .value { color: #1890ff; }
+        
+        /* Form */
+        .form-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 800px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            font-family: 'Monaco', 'Menlo', monospace;
+            resize: vertical;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102,126,234,0.2);
+        }
+        .btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-default {
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            color: #333;
+        }
+        .btn-default:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            margin: 0;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #999;
+        }
+        .modal-body {
+            padding: 24px;
+        }
+        
+        /* Code Block */
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        /* Alert */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .alert.success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
+        .alert.error { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; }
+        .alert.warning { background: #fffbe6; border: 1px solid #ffe58f; color: #faad14; }
+        .alert.info { background: #e6f7ff; border: 1px solid #91d5ff; color: #1890ff; }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            border-bottom: 1px solid #e8e8e8;
+            margin-bottom: 24px;
+        }
+        .tab {
+            padding: 12px 0;
+            cursor: pointer;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab:hover { color: #667eea; }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .info-item {
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+        .info-item .label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .info-item .value {
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const API_BASE = '/api';
+        
+        // API Functions
+        const api = {
+            getTools: async (params = {}) => {
+                const query = new URLSearchParams(params).toString();
+                const res = await axios.get(`${API_BASE}/tools/${query ? '?' + query : ''}`);
+                return res.data;
+            },
+            getTool: async (id) => {
+                const res = await axios.get(`${API_BASE}/tools/${id}`);
+                return res.data;
+            },
+            createTool: async (data) => {
+                const res = await axios.post(`${API_BASE}/tools/`, data);
+                return res.data;
+            },
+            deleteTool: async (id) => {
+                const res = await axios.delete(`${API_BASE}/tools/${id}`);
+                return res.data;
+            },
+            validateTool: async (code) => {
+                const res = await axios.post(`${API_BASE}/tools/validate`, null, { params: { source_code: code } });
+                return res.data;
+            },
+            getStats: async () => {
+                const res = await axios.get(`${API_BASE}/tools/statistics`);
+                return res.data;
+            },
+            executeTool: async (data) => {
+                const res = await axios.post(`${API_BASE}/mcp/call`, data);
+                return res.data;
+            }
+        };
+        
+        // Tool Card Component
+        function ToolCard({ tool, onView, onDelete }) {
+            const typeIcons = { decorator: '🎯', class: '📦', structured: '🔧', unknown: '❓' };
+            const statusText = { valid: '有效', invalid: '无效', pending: '待验证', disabled: '已禁用' };
+            
+            return (
+                <div className={`tool-card ${tool.status}`} onClick={onView}>
+                    <div className="tool-card-actions" onClick={e => e.stopPropagation()}>
+                        <button className="action-btn view" onClick={onView}>👁</button>
+                        <button className="action-btn delete" onClick={onDelete}>🗑</button>
+                    </div>
+                    <div className="tool-card-icon">
+                        {typeIcons[tool.tool_type] || '🔧'}
+                    </div>
+                    <div className="tool-card-name">{tool.name}</div>
+                    <div className="tool-card-desc">{tool.description || '暂无描述'}</div>
+                    <div className="tool-card-status">
+                        <span className={`status-tag ${tool.status}`}>
+                            {statusText[tool.status] || tool.status}
+                        </span>
+                    </div>
+                    <div className="tool-card-footer">
+                        <span>⚡ {tool.call_count}</span>
+                        <span>👤 {tool.uploader || '匿名'}</span>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Tool Detail Modal
+        function ToolDetailModal({ tool, onClose }) {
+            const [detail, setDetail] = useState(null);
+            const [tab, setTab] = useState('info');
+            
+            useEffect(() => {
+                if (tool) {
+                    api.getTool(tool.id).then(setDetail).catch(console.error);
+                }
+            }, [tool]);
+            
+            if (!tool) return null;
+            
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>工具详情 - {tool.name}</h3>
+                            <button className="modal-close" onClick={onClose}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            {!detail ? (
+                                <div className="loading"><div className="spinner"></div></div>
+                            ) : (
+                                <>
+                                    <div className="tabs">
+                                        <div className={`tab ${tab === 'info' ? 'active' : ''}`} onClick={() => setTab('info')}>基本信息</div>
+                                        <div className={`tab ${tab === 'code' ? 'active' : ''}`} onClick={() => setTab('code')}>源代码</div>
+                                        <div className={`tab ${tab === 'schema' ? 'active' : ''}`} onClick={() => setTab('schema')}>输入参数</div>
+                                    </div>
+                                    
+                                    {tab === 'info' && (
+                                        <div className="info-grid">
+                                            <div className="info-item"><div className="label">工具名称</div><div className="value">{detail.name}</div></div>
+                                            <div className="info-item"><div className="label">状态</div><div className="value"><span className={`status-tag ${detail.status}`}>{detail.status}</span></div></div>
+                                            <div className="info-item"><div className="label">工具类型</div><div className="value">{detail.tool_type}</div></div>
+                                            <div className="info-item"><div className="label">调用次数</div><div className="value">{detail.call_count}</div></div>
+                                            <div className="info-item"><div className="label">上传者</div><div className="value">{detail.uploader || '匿名'}</div></div>
+                                            <div className="info-item"><div className="label">创建时间</div><div className="value">{detail.created_at?.slice(0, 19)}</div></div>
+                                            <div className="info-item" style={{gridColumn: 'span 2'}}><div className="label">描述</div><div className="value">{detail.description || '暂无描述'}</div></div>
+                                        </div>
+                                    )}
+                                    
+                                    {tab === 'code' && (
+                                        <div className="code-block">{detail.source_code}</div>
+                                    )}
+                                    
+                                    {tab === 'schema' && detail.input_schema && (
+                                        <div className="code-block">{JSON.stringify(detail.input_schema, null, 2)}</div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Tool List Page
+        function ToolListPage() {
+            const [tools, setTools] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [search, setSearch] = useState('');
+            const [status, setStatus] = useState('');
+            const [selectedTool, setSelectedTool] = useState(null);
+            
+            const fetchTools = async () => {
+                setLoading(true);
+                try {
+                    const params = {};
+                    if (search) params.search = search;
+                    if (status) params.status = status;
+                    const data = await api.getTools(params);
+                    setTools(data);
+                } catch (e) {
+                    console.error(e);
+                }
+                setLoading(false);
+            };
+            
+            useEffect(() => { fetchTools(); }, [status]);
+            
+            const handleDelete = async (tool) => {
+                if (confirm(`确定要删除工具 "${tool.name}" 吗？`)) {
+                    try {
+                        await api.deleteTool(tool.id);
+                        fetchTools();
+                    } catch (e) {
+                        alert('删除失败');
+                    }
+                }
+            };
+            
+            return (
+                <div>
+                    <div className="page-header">
+                        <h2>工具列表</h2>
+                    </div>
+                    
+                    <div className="filters">
+                        <input 
+                            type="text" 
+                            placeholder="搜索工具名称或描述..." 
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && fetchTools()}
+                            style={{width: 300, padding: '8px 12px', borderRadius: 8, border: '1px solid #d9d9d9'}}
+                        />
+                        <select value={status} onChange={e => setStatus(e.target.value)} style={{padding: '8px 12px', borderRadius: 8, border: '1px solid #d9d9d9'}}>
+                            <option value="">全部状态</option>
+                            <option value="valid">有效</option>
+                            <option value="invalid">无效</option>
+                            <option value="pending">待验证</option>
+                            <option value="disabled">已禁用</option>
+                        </select>
+                        <button className="btn btn-default" onClick={fetchTools}>🔄 刷新</button>
+                    </div>
+                    
+                    {loading ? (
+                        <div className="loading"><div className="spinner"></div></div>
+                    ) : tools.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="icon">📦</div>
+                            <p>暂无工具，点击「上传工具」添加新工具</p>
+                        </div>
+                    ) : (
+                        <div className="tool-grid">
+                            {tools.map(tool => (
+                                <ToolCard 
+                                    key={tool.id} 
+                                    tool={tool} 
+                                    onView={() => setSelectedTool(tool)}
+                                    onDelete={() => handleDelete(tool)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    
+                    {selectedTool && (
+                        <ToolDetailModal tool={selectedTool} onClose={() => setSelectedTool(null)} />
+                    )}
+                </div>
+            );
+        }
+        
+        // Upload Tool Page
+        function UploadToolPage() {
+            const [form, setForm] = useState({ name: '', description: '', uploader: '', source_code: '' });
+            const [loading, setLoading] = useState(false);
+            const [result, setResult] = useState(null);
+            
+            const sampleCode = `from langchain_core.tools import tool
+
+@tool
+def my_tool(query: str) -> str:
+    """工具描述
+    
+    Args:
+        query: 输入参数
+    
+    Returns:
+        处理结果
+    """
+    return f"处理结果: {query}"`;
+            
+            const handleValidate = async () => {
+                if (!form.source_code) { alert('请输入源代码'); return; }
+                setLoading(true);
+                try {
+                    const res = await api.validateTool(form.source_code);
+                    setResult(res);
+                } catch (e) {
+                    alert('验证失败');
+                }
+                setLoading(false);
+            };
+            
+            const handleSubmit = async () => {
+                if (!form.name || !form.source_code) { alert('请填写工具名称和源代码'); return; }
+                setLoading(true);
+                try {
+                    const res = await api.createTool(form);
+                    if (res.status === 'valid') {
+                        alert('工具上传成功！');
+                        setForm({ name: '', description: '', uploader: '', source_code: '' });
+                        setResult(null);
+                    } else {
+                        alert('工具已保存，但验证未通过');
+                    }
+                } catch (e) {
+                    alert('上传失败');
+                }
+                setLoading(false);
+            };
+            
+            return (
+                <div>
+                    <div className="page-header">
+                        <h2>上传工具</h2>
+                        <p>上传您的 LangChain 工具代码，系统会自动验证是否符合规范</p>
+                    </div>
+                    
+                    <div className="form-card">
+                        <div className="form-group">
+                            <label>工具名称 *</label>
+                            <input type="text" placeholder="my_tool" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                        </div>
+                        <div className="form-group">
+                            <label>工具描述</label>
+                            <input type="text" placeholder="这个工具用于..." value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+                        </div>
+                        <div className="form-group">
+                            <label>上传者</label>
+                            <input type="text" placeholder="您的名字（可选）" value={form.uploader} onChange={e => setForm({...form, uploader: e.target.value})} />
+                        </div>
+                        <div className="form-group">
+                            <label>源代码 *</label>
+                            <textarea rows={15} placeholder={sampleCode} value={form.source_code} onChange={e => setForm({...form, source_code: e.target.value})}></textarea>
+                        </div>
+                        
+                        {result && (
+                            <div className={`alert ${result.is_valid ? 'success' : 'error'}`}>
+                                {result.is_valid ? (
+                                    <div>✅ 验证通过！工具类型: {result.tool_type}</div>
+                                ) : (
+                                    <div>
+                                        ❌ 验证失败
+                                        {result.errors?.map((err, i) => <div key={i}>• {err}</div>)}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        <div style={{display: 'flex', gap: 16}}>
+                            <button className="btn btn-default" onClick={handleValidate} disabled={loading}>仅验证</button>
+                            <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>📤 上传工具</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Test Tool Page
+        function TestToolPage() {
+            const [tools, setTools] = useState([]);
+            const [selectedId, setSelectedId] = useState('');
+            const [detail, setDetail] = useState(null);
+            const [args, setArgs] = useState({});
+            const [result, setResult] = useState(null);
+            const [loading, setLoading] = useState(false);
+            
+            useEffect(() => {
+                api.getTools({ status: 'valid' }).then(setTools).catch(console.error);
+            }, []);
+            
+            useEffect(() => {
+                if (selectedId) {
+                    api.getTool(selectedId).then(d => {
+                        setDetail(d);
+                        setArgs({});
+                        setResult(null);
+                    }).catch(console.error);
+                }
+            }, [selectedId]);
+            
+            const handleExecute = async () => {
+                if (!detail) return;
+                setLoading(true);
+                try {
+                    const res = await api.executeTool({
+                        tool_name: detail.name,
+                        arguments: args,
+                        caller: null
+                    });
+                    setResult(res);
+                } catch (e) {
+                    alert('执行失败');
+                }
+                setLoading(false);
+            };
+            
+            const schema = detail?.input_schema || {};
+            const properties = schema.properties || {};
+            
+            return (
+                <div>
+                    <div className="page-header">
+                        <h2>测试工具</h2>
+                        <p>选择已验证的工具进行测试执行</p>
+                    </div>
+                    
+                    <div className="form-card">
+                        <div className="form-group">
+                            <label>选择工具</label>
+                            <select value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+                                <option value="">请选择要测试的工具</option>
+                                {tools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                        </div>
+                        
+                        {detail && (
+                            <>
+                                <div className="alert info">{detail.description || '暂无描述'}</div>
+                                
+                                {Object.entries(properties).map(([name, prop]) => (
+                                    <div className="form-group" key={name}>
+                                        <label>{name} {schema.required?.includes(name) ? '*' : ''}</label>
+                                        <input 
+                                            type={prop.type === 'integer' || prop.type === 'number' ? 'number' : 'text'}
+                                            placeholder={prop.description || name}
+                                            value={args[name] || ''}
+                                            onChange={e => setArgs({...args, [name]: e.target.value})}
+                                        />
+                                    </div>
+                                ))}
+                                
+                                <button className="btn btn-primary" onClick={handleExecute} disabled={loading}>
+                                    🚀 执行工具
+                                </button>
+                            </>
+                        )}
+                        
+                        {result && (
+                            <div style={{marginTop: 24}}>
+                                {result.success ? (
+                                    <>
+                                        <div className="alert success">✅ 执行成功 (耗时: {result.execution_time_ms}ms)</div>
+                                        <div className="code-block">{result.result}</div>
+                                    </>
+                                ) : (
+                                    <div className="alert error">❌ 执行失败: {result.error}</div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        
+        // Statistics Page
+        function StatisticsPage() {
+            const [stats, setStats] = useState(null);
+            const [tools, setTools] = useState([]);
+            
+            useEffect(() => {
+                Promise.all([api.getStats(), api.getTools()])
+                    .then(([s, t]) => { setStats(s); setTools(t); })
+                    .catch(console.error);
+            }, []);
+            
+            if (!stats) return <div className="loading"><div className="spinner"></div></div>;
+            
+            const topTools = [...tools].sort((a, b) => b.call_count - a.call_count).slice(0, 10);
+            const maxCalls = topTools[0]?.call_count || 1;
+            
+            return (
+                <div>
+                    <div className="page-header">
+                        <h2>统计信息</h2>
+                    </div>
+                    
+                    <div className="stats-grid">
+                        <div className="stat-card total">
+                            <div className="label">📦 总工具数</div>
+                            <div className="value">{stats.total_tools}</div>
+                        </div>
+                        <div className="stat-card valid">
+                            <div className="label">✅ 有效工具</div>
+                            <div className="value">{stats.valid_tools}</div>
+                        </div>
+                        <div className="stat-card invalid">
+                            <div className="label">❌ 无效工具</div>
+                            <div className="value">{stats.invalid_tools}</div>
+                        </div>
+                        <div className="stat-card calls">
+                            <div className="label">⚡ 总调用次数</div>
+                            <div className="value">{stats.total_calls}</div>
+                        </div>
+                    </div>
+                    
+                    <div className="form-card">
+                        <h3 style={{marginBottom: 20}}>工具调用排行</h3>
+                        {topTools.some(t => t.call_count > 0) ? (
+                            topTools.map((tool, i) => (
+                                <div key={tool.id} style={{display: 'flex', alignItems: 'center', marginBottom: 12}}>
+                                    <span style={{
+                                        width: 24, height: 24, borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                                        color: '#fff', fontSize: 12, display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center', marginRight: 12
+                                    }}>{i + 1}</span>
+                                    <span style={{width: 120}}>{tool.name}</span>
+                                    <div style={{flex: 1, height: 8, background: '#f0f2f5', borderRadius: 4, margin: '0 12px', overflow: 'hidden'}}>
+                                        <div style={{width: `${(tool.call_count / maxCalls) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #667eea, #764ba2)', borderRadius: 4}}></div>
+                                    </div>
+                                    <span style={{width: 40, textAlign: 'right', fontWeight: 600, color: '#667eea'}}>{tool.call_count}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="empty-state">暂无调用数据</div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        
+        // Documentation Page
+        function DocumentationPage() {
+            const decoratorCode = `from langchain_core.tools import tool
+
+@tool
+def calculator(expression: str) -> str:
+    """计算数学表达式
+    
+    Args:
+        expression: 数学表达式，如 "2 + 3 * 4"
+    
+    Returns:
+        计算结果
+    """
+    try:
+        result = eval(expression)
+        return f"计算结果: {result}"
+    except Exception as e:
+        return f"计算错误: {str(e)}"`;
+
+            const classCode = `from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type
+
+class WeatherInput(BaseModel):
+    """天气查询输入参数"""
+    city: str = Field(description="城市名称")
+
+class WeatherTool(BaseTool):
+    """天气查询工具"""
+    name: str = "weather"
+    description: str = "查询指定城市的天气信息"
+    args_schema: Type[BaseModel] = WeatherInput
+    
+    def _run(self, city: str) -> str:
+        """执行天气查询"""
+        return f"{city}的天气: 晴天，温度25°C"
+    
+    async def _arun(self, city: str) -> str:
+        """异步执行"""
+        return self._run(city)`;
+            
+            const [tab, setTab] = useState('decorator');
+            
+            return (
+                <div>
+                    <div className="page-header">
+                        <h2>规范文档</h2>
+                    </div>
+                    
+                    <div className="form-card" style={{marginBottom: 24}}>
+                        <h3>LangChain 工具规范</h3>
+                        <p style={{marginTop: 16, lineHeight: 1.8, color: '#555'}}>
+                            LangChain 工具需要符合以下规范：<br/><br/>
+                            1. 使用 @tool 装饰器或继承 BaseTool 类<br/>
+                            2. 必须有 docstring 描述工具功能<br/>
+                            3. 参数必须有类型注解<br/>
+                            4. 返回值必须是字符串类型
+                        </p>
+                    </div>
+                    
+                    <div className="form-card">
+                        <h3>示例代码</h3>
+                        <div className="tabs" style={{marginTop: 16}}>
+                            <div className={`tab ${tab === 'decorator' ? 'active' : ''}`} onClick={() => setTab('decorator')}>@tool 装饰器</div>
+                            <div className={`tab ${tab === 'class' ? 'active' : ''}`} onClick={() => setTab('class')}>BaseTool 类</div>
+                        </div>
+                        <div className="code-block">
+                            {tab === 'decorator' ? decoratorCode : classCode}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Main App
+        function App() {
+            const [page, setPage] = useState('tools');
+            
+            const menuItems = [
+                { key: 'tools', icon: '📋', label: '工具列表' },
+                { key: 'upload', icon: '➕', label: '上传工具' },
+                { key: 'test', icon: '🔍', label: '测试工具' },
+                { key: 'docs', icon: '📚', label: '规范文档' },
+                { key: 'stats', icon: '📊', label: '统计信息' },
+            ];
+            
+            const renderPage = () => {
+                switch (page) {
+                    case 'tools': return <ToolListPage />;
+                    case 'upload': return <UploadToolPage />;
+                    case 'test': return <TestToolPage />;
+                    case 'docs': return <DocumentationPage />;
+                    case 'stats': return <StatisticsPage />;
+                    default: return <ToolListPage />;
+                }
+            };
+            
+            return (
+                <div>
+                    <header className="app-header">
+                        <div className="logo">
+                            🛠️ LangChain 工具平台
+                        </div>
+                        <div className="mcp-endpoint">
+                            MCP: http://localhost:8000/api/mcp
+                        </div>
+                    </header>
+                    
+                    <div className="app-container">
+                        <nav className="sidebar">
+                            {menuItems.map(item => (
+                                <div 
+                                    key={item.key}
+                                    className={`menu-item ${page === item.key ? 'active' : ''}`}
+                                    onClick={() => setPage(item.key)}
+                                >
+                                    <span>{item.icon}</span>
+                                    <span>{item.label}</span>
+                                </div>
+                            ))}
+                        </nav>
+                        
+                        <main className="main-content">
+                            {renderPage()}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+        
+        // Render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

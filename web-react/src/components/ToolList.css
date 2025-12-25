@@ -1,0 +1,43 @@
+.tool-list-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.tool-list-header {
+  margin-bottom: 24px;
+}
+
+.tool-list-header h2 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.tool-list-filters {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.empty-state {
+  margin-top: 100px;
+}
+
+/* 工具网格 - ModelScope 风格 */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 8px 0;
+}
+
+@media (min-width: 1200px) {
+  .tool-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .tool-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
