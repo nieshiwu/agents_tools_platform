@@ -132,8 +132,8 @@ def main() -> None:
     )
 
     tmp_dir = Path(tempfile.mkdtemp())
-    # excel_path = _prepare_sample_excel(tmp_dir)
-    excel_path = "C:\\Users\\niesh\\Desktop\\111.xlsx"
+    excel_path = _prepare_sample_excel(tmp_dir)
+    # excel_path = "C:\\Users\\niesh\\Desktop\\111.xlsx"
 
     user_msg = (
         "请把这个 Excel 转成 Markdown 表格，只保留前 5 行。"  # instruction in Chinese
