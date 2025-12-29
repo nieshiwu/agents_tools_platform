@@ -186,7 +186,7 @@ def example_1_agent_with_mcp_tools():
         # 打印完整的消息流程
         print("\n📋 Agent 交互详情:")
         print("=" * 60)
-        print(response['messages'])
+        # print(response['messages'])
         for i, msg in enumerate(response['messages']):
             msg_type = type(msg).__name__
             print(f"\n[{i+1}] {msg_type}")

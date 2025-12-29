@@ -3,12 +3,17 @@ MCP (Model Context Protocol) API Endpoints
 
 Provides MCP-compatible endpoints for tool discovery and invocation.
 """
+import os
+import uuid
+import hashlib
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.database import get_db
+from app.config import get_settings
 from app.models import Tool, ToolStatus, ToolCallLog
 from app.schemas import MCPToolInfo, MCPToolCallRequest, MCPToolCallResponse
 from app.services.tool_executor import execute_tool
@@ -241,3 +246,86 @@ def call_tool_protocol(
                 }
             ]
         }
+
+
+# ============== File Download Endpoints ==============
+
+# 存储文件 token 与路径的映射（生产环境建议用 Redis）
+_file_tokens: Dict[str, Dict[str, Any]] = {}
+
+
+@router.post("/files/register")
+def register_file_for_download(
+    file_path: str = Body(..., embed=True),
+    expires_in: int = Body(3600, embed=True)
+):
+    """
+    注册一个服务器本地文件，生成可供远程下载的 token
+    
+    Args:
+        file_path: 服务器上的文件绝对路径
+        expires_in: token 有效期（秒），默认 3600
+        
+    Returns:
+        包含下载 URL 的响应
+    """
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail=f"文件不存在: {file_path}")
+    
+    # 生成唯一 token
+    token = hashlib.md5(f"{file_path}{uuid.uuid4()}".encode()).hexdigest()
+    
+    # 存储映射
+    _file_tokens[token] = {
+        "path": file_path,
+        "filename": os.path.basename(file_path),
+        "created_at": datetime.now(),
+        "expires_in": expires_in
+    }
+    
+    settings = get_settings()
+    base_url = f"http://{settings.api_host}:{settings.api_port}"
+    if settings.api_host == "0.0.0.0":
+        base_url = f"http://localhost:{settings.api_port}"
+    
+    return {
+        "success": True,
+        "token": token,
+        "download_url": f"{base_url}/api/mcp/files/download/{token}",
+        "filename": os.path.basename(file_path),
+        "expires_in": expires_in
+    }
+
+
+@router.get("/files/download/{token}")
+def download_file(token: str):
+    """
+    通过 token 下载文件
+    
+    Args:
+        token: 文件访问 token
+        
+    Returns:
+        文件内容
+    """
+    if token not in _file_tokens:
+        raise HTTPException(status_code=404, detail="无效或已过期的下载链接")
+    
+    file_info = _file_tokens[token]
+    file_path = file_info["path"]
+    
+    # 检查是否过期
+    created_at = file_info["created_at"]
+    expires_in = file_info["expires_in"]
+    if (datetime.now() - created_at).total_seconds() > expires_in:
+        del _file_tokens[token]
+        raise HTTPException(status_code=410, detail="下载链接已过期")
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="文件已被删除")
+    
+    return FileResponse(
+        path=file_path,
+        filename=file_info["filename"],
+        media_type="application/octet-stream"
+    )

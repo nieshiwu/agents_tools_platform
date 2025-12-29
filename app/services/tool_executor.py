@@ -71,6 +71,75 @@ class ToolExecutor:
         except Exception as e:
             return False, f"加载工具失败: {str(e)}\n{traceback.format_exc()}"
     
+    def _register_file_download(self, file_path: str, expires_in: int = 3600) -> Optional[str]:
+        """
+        注册文件以生成下载 URL
+        
+        Args:
+            file_path: 服务器上的文件路径
+            expires_in: 过期时间（秒）
+            
+        Returns:
+            下载 URL 或 None
+        """
+        import hashlib
+        import uuid
+        from datetime import datetime
+        from app.config import get_settings
+        
+        # 直接在内存中注册，避免 HTTP 请求自己
+        # 导入 mcp 模块中的 _file_tokens
+        try:
+            from app.api.mcp import _file_tokens
+            
+            if not os.path.exists(file_path):
+                print(f"[DEBUG] File not exists: {file_path}")
+                return None
+            
+            token = hashlib.md5(f"{file_path}{uuid.uuid4()}".encode()).hexdigest()
+            
+            _file_tokens[token] = {
+                "path": file_path,
+                "filename": os.path.basename(file_path),
+                "created_at": datetime.now(),
+                "expires_in": expires_in
+            }
+            
+            settings = get_settings()
+            base_url = f"http://{settings.api_host}:{settings.api_port}"
+            if settings.api_host == "0.0.0.0":
+                base_url = f"http://localhost:{settings.api_port}"
+            
+            download_url = f"{base_url}/api/mcp/files/download/{token}"
+            print(f"[DEBUG] Registered file download: {file_path} -> {download_url}")
+            return download_url
+        except Exception as e:
+            print(f"[DEBUG] Failed to register file download: {e}")
+            return None
+    
+    def _process_result_download_urls(self, result: Any) -> Any:
+        """
+        处理工具返回结果，为文件路径生成下载 URL
+        
+        检测结果中的文件路径字段，自动注册并填充 download_url
+        """
+        if not isinstance(result, dict):
+            return result
+        
+        # 检测常见的文件路径字段
+        file_path_keys = ['image_path', 'pdf_path', 'file_path', 'output_path']
+        
+        for key in file_path_keys:
+            if key in result and result[key]:
+                file_path = result[key]
+                if isinstance(file_path, str) and os.path.exists(file_path):
+                    # 如果 download_url 为 None，尝试注册
+                    if result.get('download_url') is None:
+                        result['download_url'] = self._register_file_download(file_path)
+                    break
+        
+        return result
+    
     def execute(
         self,
         tool: Tool,
@@ -119,9 +188,17 @@ class ToolExecutor:
             
             execution_time = int((time.time() - start_time) * 1000)
             
+            # 处理结果中的文件下载 URL
+            print(f"[DEBUG] Before processing: {type(result)} - {result}")
+            result = self._process_result_download_urls(result)
+            print(f"[DEBUG] After processing: {result}")
+            
             # Combine result with any printed output
             if output:
-                result = f"{result}\n\n[stdout]:\n{output}"
+                if isinstance(result, dict):
+                    result['_stdout'] = output
+                else:
+                    result = f"{result}\n\n[stdout]:\n{output}"
             
             return True, result, None, execution_time
             
