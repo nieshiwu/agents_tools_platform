@@ -85,6 +85,7 @@ def mcp_tool_to_langchain(mcp_client: MCPClient, tool_info: Dict[str, Any]) -> S
         max_cols: int = 20,
         include_index: bool = False,
         output_path: str | None = None,
+        save_to_file: bool = True,
     ) -> str:
         """Call MCP tool with explicit parameters (avoids empty-arg failures)."""
 
@@ -94,6 +95,7 @@ def mcp_tool_to_langchain(mcp_client: MCPClient, tool_info: Dict[str, Any]) -> S
             "max_rows": max_rows,
             "max_cols": max_cols,
             "include_index": include_index,
+            "save_to_file": save_to_file,
         }
         if output_path:
             arguments["output_path"] = output_path
@@ -108,7 +110,12 @@ def mcp_tool_to_langchain(mcp_client: MCPClient, tool_info: Dict[str, Any]) -> S
 
 
 def _prepare_sample_excel(tmp_dir: Path) -> Path:
-    df = pd.DataFrame({"city": ["Beijing", "Shanghai", "Shenzhen"], "score": [90, 95, 93]})
+    df = pd.DataFrame({
+        "城市": ["北京", "上海", "深圳", "广州", "杭州"],
+        "人口(万)": [2154, 2487, 1756, 1530, 1220],
+        "GDP(亿)": [41610, 47218, 32387, 28231, 18109],
+        "增长率(%)": [5.2, 4.8, 6.1, 5.5, 7.2]
+    })
     excel_path = tmp_dir / "demo.xlsx"
     df.to_excel(excel_path, index=False, sheet_name="Sheet1")
     return excel_path
@@ -128,25 +135,41 @@ def main() -> None:
     agent = create_agent(
         model=model,
         tools=[excel_tool],
-        system_prompt="You are a helpful assistant. When the user provides an Excel path, convert it to markdown by calling the tool.",
+        system_prompt="""You are a helpful assistant. When the user provides an Excel path, convert it to markdown by calling the tool.
+The tool returns a JSON with:
+- success: whether conversion succeeded
+- markdown: the markdown table content  
+- file_path: saved file path
+- download_url: URL to download the file (can be shared with others)
+- message: status message
+- rows/cols: data dimensions
+
+Always report the download_url to the user so they can access the file.""",
     )
 
     tmp_dir = Path(tempfile.mkdtemp())
     excel_path = _prepare_sample_excel(tmp_dir)
-    # excel_path = "C:\\Users\\niesh\\Desktop\\111.xlsx"
 
     user_msg = (
-        "请把这个 Excel 转成 Markdown 表格，只保留前 5 行。"  # instruction in Chinese
-        f" 文件路径: {excel_path}，工作表: Sheet1。，请只返回 Markdown 内容，并保存在C:\\Users\\niesh\\Desktop\\output.md。"
-        
-    
+        f"请把这个 Excel 转成 Markdown 表格: {excel_path}\n"
+        "工作表名: Sheet1\n"
+        "请告诉我转换结果，包括文件的下载链接。"
     )
+
+    print("=== User Request ===")
+    print(user_msg)
+    print()
 
     response = agent.invoke({"messages": [{"role": "user", "content": user_msg}]})
 
     print("\n=== Agent trace ===")
     for idx, msg in enumerate(response.get("messages", []), start=1):
-        print(f"[{idx}] {type(msg).__name__} -> {getattr(msg, 'content', msg)}")
+        role = type(msg).__name__
+        content = getattr(msg, "content", msg)
+        # 截断过长内容
+        if isinstance(content, str) and len(content) > 500:
+            content = content[:500] + "..."
+        print(f"[{idx}] {role} -> {content}")
 
     final_msg = response.get("messages", [])[-1]
     print("\n=== Final reply ===")
@@ -155,3 +178,9 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+    # import requests
+    # response = requests.get(download_url)
+    # with open("local_chart.png", "wb") as f:
+    #     f.write(response.content)

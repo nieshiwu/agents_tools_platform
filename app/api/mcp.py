@@ -228,11 +228,18 @@ def call_tool_protocol(
     db.commit()
     
     if success:
+        # 如果结果是字典，返回 JSON 格式以保留结构化数据（如 download_url）
+        if isinstance(result, dict):
+            import json
+            result_text = json.dumps(result, ensure_ascii=False, indent=2)
+        else:
+            result_text = str(result)
+        
         return {
             "content": [
                 {
                     "type": "text",
-                    "text": str(result)
+                    "text": result_text
                 }
             ]
         }

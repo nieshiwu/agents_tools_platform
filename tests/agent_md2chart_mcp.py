@@ -177,7 +177,7 @@ X轴名称设为"月份"，Y轴名称设为"金额(万元)"。
     print("\n=== Agent trace ===")
     for idx, msg in enumerate(response.get("messages", []), start=1):
         content = getattr(msg, 'content', msg)
-        msg_type = type(msg).__name__
+        msg_type = type(msg).__name__ 
         # 截断过长的内容
         if isinstance(content, str) and len(content) > 500:
             content = content[:500] + "..."
