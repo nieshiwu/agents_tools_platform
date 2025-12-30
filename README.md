@@ -142,7 +142,7 @@ python run.py
 
 #### 4. 访问服务
 
-- **React 前端** (新): http://localhost:3000
+- **React 前端** (新): http://localhost:1234
 - **Streamlit 前端** (旧): http://localhost:8501
 - **API 文档**: http://localhost:8000/docs
 - **MCP 服务**: http://localhost:8000/api/mcp
