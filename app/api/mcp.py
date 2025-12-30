@@ -6,11 +6,13 @@ Provides MCP-compatible endpoints for tool discovery and invocation.
 import os
 import uuid
 import hashlib
+import shutil
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
+from pathlib import Path
 
 from app.database import get_db
 from app.config import get_settings
@@ -291,9 +293,12 @@ def register_file_for_download(
     }
     
     settings = get_settings()
-    base_url = f"http://{settings.api_host}:{settings.api_port}"
-    if settings.api_host == "0.0.0.0":
+    if settings.api_public_url:
+        base_url = settings.api_public_url.rstrip("/")
+    elif settings.api_host == "0.0.0.0":
         base_url = f"http://localhost:{settings.api_port}"
+    else:
+        base_url = f"http://{settings.api_host}:{settings.api_port}"
     
     return {
         "success": True,
@@ -336,3 +341,42 @@ def download_file(token: str):
         filename=file_info["filename"],
         media_type="application/octet-stream"
     )
+
+
+@router.post("/files/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """
+    上传文件到服务器临时目录
+    
+    Args:
+        file: 上传的文件
+        
+    Returns:
+        包含文件路径的响应
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="文件名不能为空")
+    
+    # 创建临时目录
+    temp_dir = Path("temp_uploads")
+    temp_dir.mkdir(exist_ok=True)
+    
+    # 生成唯一文件名以避免冲突
+    file_ext = Path(file.filename).suffix
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = temp_dir / unique_filename
+    
+    # 保存文件
+    try:
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+    
+    return {
+        "success": True,
+        "file_path": str(file_path.absolute()),
+        "filename": file.filename,
+        "size": file_path.stat().st_size,
+        "message": "文件上传成功"
+    }

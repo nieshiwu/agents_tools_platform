@@ -30,7 +30,7 @@ def run_api():
         sys.executable, "-m", "uvicorn",
         "app.main:app",
         "--host", "0.0.0.0",
-        "--port", "8000",
+        "--port", "7000",
         "--reload"
     ])
 
@@ -85,7 +85,7 @@ class ReactProxyHandler(http.server.SimpleHTTPRequestHandler):
         import urllib.request
         import urllib.error
         
-        backend_url = f"http://localhost:8000{self.path}"
+        backend_url = f"http://localhost:7000{self.path}"
         
         try:
             # 读取请求体
@@ -161,10 +161,10 @@ def run_all(frontend_type=DEFAULT_FRONTEND):
     print("🚀 LangChain 工具平台启动中...")
     print("=" * 50)
     print()
-    print("📡 API 服务: http://localhost:8000")
-    print("📖 API 文档: http://localhost:8000/docs")
+    print("📡 API 服务: http://localhost:7000")
+    print("📖 API 文档: http://localhost:7000/docs")
     print(f"🌐 Web 界面: {web_url} ({frontend_type.upper()})")
-    print("🔧 MCP 服务: http://localhost:8000/api/mcp")
+    print("🔧 MCP 服务: http://localhost:7000/api/mcp")
     print()
     print("=" * 50)
     print("按 Ctrl+C 停止所有服务")
@@ -208,11 +208,11 @@ def show_help():
     print("  python run.py all --streamlit  - 同时启动 API + Streamlit 前端")
     print()
     print("服务地址:")
-    print("  API 服务: http://localhost:8000")
-    print("  API 文档: http://localhost:8000/docs")
+    print("  API 服务: http://localhost:7000")
+    print("  API 文档: http://localhost:7000/docs")
     print("  React 前端: http://localhost:3000")
     print("  Streamlit 前端: http://localhost:8501")
-    print("  MCP 服务: http://localhost:8000/api/mcp")
+    print("  MCP 服务: http://localhost:7000/api/mcp")
     print()
     print("首次运行前请确保:")
     print("  1. PostgreSQL 已启动")

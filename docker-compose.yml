@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
+    image: docker.1ms.run/library/postgres:15-alpine
     container_name: tools_platform_db
     environment:
       POSTGRES_USER: postgres
@@ -18,14 +16,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - tools_network
 
   # FastAPI Backend
   api:
     build: .
     container_name: tools_platform_api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 6666 --reload
     ports:
-      - "8000:8000"
+      - "6666:6666"
     volumes:
       - .:/app
     environment:
@@ -34,21 +34,30 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - tools_network
 
-  # Streamlit Frontend
+  # React Frontend
   web:
-    build: .
+    image: docker.1ms.run/library/node:18-alpine
     container_name: tools_platform_web
-    command: streamlit run web/app.py --server.port 8501 --server.address 0.0.0.0
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 1234"
     ports:
-      - "8501:8501"
+      - "1234:1234"
     volumes:
-      - .:/app
+      - ./web-react:/app
     environment:
-      - API_BASE_URL=http://api:8000/api
+      - VITE_API_BASE_URL=http://api:6666/api
     depends_on:
       - api
     restart: unless-stopped
+    networks:
+      - tools_network
+
+networks:
+  tools_network:
+    driver: bridge
 
 volumes:
   postgres_data:

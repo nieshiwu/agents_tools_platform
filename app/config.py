@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     
     # API Server
     api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    api_port: int = 7000
+    api_public_url: Optional[str] = None  # 公开访问地址，如 http://192.168.0.197:7000
     
     # MCP Server
     mcp_host: str = "0.0.0.0"

@@ -7,7 +7,7 @@
 import requests
 import sys
 
-API_BASE_URL = "http://localhost:8000/api"
+API_BASE_URL = "http://localhost:7000/api"
 
 # 示例工具定义
 SAMPLE_TOOLS = [

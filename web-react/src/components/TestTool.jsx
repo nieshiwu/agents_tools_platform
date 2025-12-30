@@ -212,10 +212,12 @@ function TestTool() {
                   <div className="result-content">
                     <Title level={5}>结果</Title>
                     <SyntaxHighlighter
-                      language="text"
+                      language="json"
                       style={vscDarkPlus}
                     >
-                      {result.result}
+                      {typeof result.result === 'string' 
+                        ? result.result 
+                        : JSON.stringify(result.result, null, 2)}
                     </SyntaxHighlighter>
                   </div>
                 </div>

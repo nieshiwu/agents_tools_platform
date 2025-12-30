@@ -21,13 +21,13 @@
 | 组件 | 技术 |
 |------|------|
 | 后端 | FastAPI |
-| 前端 | React + Ant Design (新) / Streamlit (旧) |
-| 数据库 | PostgreSQL |
-| ORM | SQLAlchemy |
-| 部署 | Docker Compose |
-
-## 支持的工具类型
-
+前端 | React + Ant Design (新) / Streamlit (旧) |
+...existing code...
+访问入口：
+- React 前端（新）：http://localhost:1234
+- Streamlit 前端（旧）：http://localhost:8501
+- API 文档：http://localhost:6666/docs
+- MCP 服务：http://localhost:6666/api/mcp
 ### 1. @tool 装饰器函数
 
 ```python
@@ -85,8 +85,8 @@ docker-compose up -d
 
 # 访问
 # - Web 界面: http://localhost:8501
-# - API 文档: http://localhost:8000/docs
-# - MCP 服务: http://localhost:8000/api/mcp
+# - API 文档: http://localhost:7000/docs
+# - MCP 服务: http://localhost:7000/api/mcp
 ```
 
 ### 方式二：本地开发
@@ -123,7 +123,7 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/tools_platform
 
 ```bash
 # 终端1：启动后端 API
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 7000
 
 # 终端2：启动 React 前端（推荐）
 cd web-react
@@ -144,14 +144,14 @@ python run.py
 
 - **React 前端** (新): http://localhost:3000
 - **Streamlit 前端** (旧): http://localhost:8501
-- **API 文档**: http://localhost:8000/docs
-- **MCP 服务**: http://localhost:8000/api/mcp
+- **API 文档**: http://localhost:7000/docs
+- **MCP 服务**: http://localhost:7000/api/mcp
 
 ## API 文档
 
 启动服务后访问：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- Swagger UI: http://localhost:7000/docs
+- ReDoc: http://localhost:7000/redoc
 
 ### 主要 API 端点
 
@@ -187,7 +187,7 @@ python run.py
   "mcpServers": {
     "langchain-tools": {
       "command": "curl",
-      "args": ["-X", "POST", "http://localhost:8000/api/mcp/protocol/tools/list"]
+      "args": ["-X", "POST", "http://localhost:7000/api/mcp/protocol/tools/list"]
     }
   }
 }
@@ -199,11 +199,11 @@ python run.py
 import requests
 
 # 列出所有工具
-tools = requests.get("http://localhost:8000/api/mcp/tools").json()
+tools = requests.get("http://localhost:7000/api/mcp/tools").json()
 
 # 调用工具
 result = requests.post(
-    "http://localhost:8000/api/mcp/call",
+    "http://localhost:7000/api/mcp/call",
     json={
         "tool_name": "calculator",
         "arguments": {"expression": "2 + 3 * 4"},
@@ -248,7 +248,7 @@ tools_platform/
 ## 文档
 
 - 📖 [用户指南](docs/用户指南.md) - 详细的工具上传和使用说明
-- 📚 API 文档 - 启动服务后访问 http://localhost:8000/docs
+- 📚 API 文档 - 启动服务后访问 http://localhost:7000/docs
 - 📋 工具规范 - Web 界面「📚 规范文档」页面
 
 ## 开发说明
@@ -267,7 +267,7 @@ tools_platform/
 |------|------|--------|
 | DATABASE_URL | 数据库连接字符串 | postgresql://postgres:postgres@localhost:5432/tools_platform |
 | API_HOST | API 监听地址 | 0.0.0.0 |
-| API_PORT | API 端口 | 8000 |
+| API_PORT | API 端口 | 7000 |
 | MCP_HOST | MCP 服务地址 | 0.0.0.0 |
 | MCP_PORT | MCP 服务端口 | 8001 |
 | STREAMLIT_PORT | 前端端口 | 8501 |

@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 
 # Configuration
-API_BASE_URL = "http://localhost:8000/api"
+API_BASE_URL = "http://localhost:7000/api"
 
 # Page config
 st.set_page_config(
@@ -108,7 +108,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### MCP 服务")
-    st.code("http://localhost:8000/api/mcp", language=None)
+    st.code("http://localhost:7000/api/mcp", language=None)
 
 
 # Main content

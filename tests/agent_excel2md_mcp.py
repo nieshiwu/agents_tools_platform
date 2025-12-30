@@ -25,7 +25,7 @@ from langchain_core.tools import StructuredTool
 
 
 load_dotenv()
-MCP_API_BASE = os.getenv("MCP_API_BASE", "http://localhost:8000/api")
+MCP_API_BASE = os.getenv("MCP_API_BASE", "http://192.168.0.197:7000/api")
 MODEL_NAME = os.getenv("AGENT_MODEL", "openai:deepseek-v3")
 API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
@@ -121,6 +121,18 @@ def _prepare_sample_excel(tmp_dir: Path) -> Path:
     return excel_path
 
 
+def _upload_file_to_server(file_path: Path) -> str:
+    """上传文件到 MCP 服务器，返回服务器上的文件路径"""
+    with open(file_path, "rb") as f:
+        files = {"file": (file_path.name, f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")}
+        resp = requests.post(f"{MCP_API_BASE}/mcp/files/upload", files=files, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        if not data.get("success"):
+            raise RuntimeError(f"文件上传失败: {data.get('message')}")
+        return data["file_path"]
+
+
 def main() -> None:
     model = init_chat_model(model=MODEL_NAME, api_key=API_KEY)
     mcp_client = MCPClient(MCP_API_BASE)
@@ -148,10 +160,15 @@ Always report the download_url to the user so they can access the file.""",
     )
 
     tmp_dir = Path(tempfile.mkdtemp())
-    excel_path = _prepare_sample_excel(tmp_dir)
+    local_excel_path = _prepare_sample_excel(tmp_dir)
+    
+    # 上传文件到服务器
+    print(f"正在上传文件到服务器: {local_excel_path}")
+    server_excel_path = _upload_file_to_server(local_excel_path)
+    print(f"文件已上传，服务器路径: {server_excel_path}")
 
     user_msg = (
-        f"请把这个 Excel 转成 Markdown 表格: {excel_path}\n"
+        f"请把这个 Excel 转成 Markdown 表格: {server_excel_path}\n"
         "工作表名: Sheet1\n"
         "请告诉我转换结果，包括文件的下载链接。"
     )

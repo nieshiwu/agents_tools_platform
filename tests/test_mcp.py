@@ -27,7 +27,8 @@ from langchain_core.tools import StructuredTool
 # ============================================================================
 load_dotenv()
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
-MCP_API_BASE = os.getenv("MCP_API_BASE", "http://localhost:8000/api")
+# MCP_API_BASE = os.getenv("MCP_API_BASE", "http://localhost:7000/api")
+MCP_API_BASE = os.getenv("MCP_API_BASE", "http://192.168.0.197:8000/api")
 
 model = init_chat_model(
     model="openai:deepseek-v3",

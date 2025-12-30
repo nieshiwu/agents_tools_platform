@@ -12,7 +12,7 @@ from typing import Optional
 from langchain_core.tools import tool
 
 # MCP 服务地址（用于注册文件下载）
-MCP_API_BASE = os.environ.get("MCP_API_BASE", "http://localhost:8000/api/mcp")
+MCP_API_BASE = os.environ.get("MCP_API_BASE", "http://localhost:7000/api/mcp")
 
 
 def register_file_download(file_path: str, expires_in: int = 3600) -> Optional[str]:
