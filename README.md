@@ -78,10 +78,23 @@ class WeatherTool(BaseTool):
 
 ```bash
 # 克隆项目
-cd tools_platform
+cd /home/nieshiwu/tools_platform
 
-# 启动所有服务
+
+#Docker Compose up 启动 -d 后端运行
 docker-compose up -d
+#若修改了项目后端代码、Dockerfile 或 requirements.txt，需要先构建新镜像再重建容器：
+docker-compose up -d --build
+
+#仅停止运行中的容器，不删除容器、网络、数据卷，后续可直接重启恢复服务，数据库工具数据完整保留：
+docker-compose stop
+#安全删除（停止容器 + 删除容器 / 网络，保留数据库数据）
+docker-compose down
+#彻底删除（删除容器 / 网络 / 数据卷，数据全部丢失）
+docker compose down -v
+
+#常规重启：重启所有服务容器
+docker-compose restart
 
 # 访问
 # - Web 界面: http://localhost:8501
