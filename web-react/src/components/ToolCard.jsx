@@ -44,14 +44,19 @@ const statusConfig = {
 
 const toolTypeIcons = {
   decorator: '🎯',
-  class: '📦',
+  class: '📦', 
   structured: '🔧',
-  unknown: '❓',
+  calculator: '🔢',
+  text: '📝',
+  weather: '🌤️',
+  password: '🔐',
+  json: '📄',
+  unknown: '🛠️',
 };
 
 function ToolCard({ tool, onView, onDelete }) {
   const status = statusConfig[tool.status] || statusConfig.pending;
-  const typeIcon = toolTypeIcons[tool.tool_type] || toolTypeIcons.unknown;
+  const typeIcon = toolTypeIcons[tool.tool_type] || toolTypeIcons[tool.name?.includes('calculator') ? 'calculator' : tool.name?.includes('password') ? 'password' : tool.name?.includes('weather') ? 'weather' : tool.name?.includes('json') ? 'json' : 'unknown'];
 
   return (
     <Card

@@ -74,7 +74,7 @@ function App() {
           <Title level={4} className="logo-text">LangChain 工具平台</Title>
         </div>
         <div className="header-info">
-          <span className="mcp-endpoint">MCP: http://localhost:8000/api/mcp</span>
+          <span className="mcp-endpoint">MCP: http://192.168.0.197:8000/api/mcp</span>
         </div>
       </Header>
       <Layout>
