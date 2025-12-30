@@ -99,7 +99,7 @@ docker-compose restart
 # 访问
 # - Web 界面: http://localhost:8501
 # - API 文档: http://localhost:8000/docs
-# - MCP 服务: http://localhost:8000/api/mcp
+# - MCP 服务: http://localhost:8000/api/mcp`
 ```
 
 ### 方式二：本地开发
