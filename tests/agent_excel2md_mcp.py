@@ -25,7 +25,7 @@ from langchain_core.tools import StructuredTool
 
 
 load_dotenv()
-MCP_API_BASE = os.getenv("MCP_API_BASE", "http://192.168.0.197:7000/api")
+MCP_API_BASE = os.getenv("MCP_API_BASE", "http://192.168.0.197:8000/api")
 MODEL_NAME = os.getenv("AGENT_MODEL", "openai:deepseek-v3")
 API_KEY = os.getenv("DASHSCOPE_API_KEY")
 

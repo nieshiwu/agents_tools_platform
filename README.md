@@ -24,7 +24,7 @@
 前端 | React + Ant Design (新) / Streamlit (旧) |
 ...existing code...
 访问入口：
-- React 前端（新）：http://localhost:3000
+- React 前端（新）：http://localhost:1000
 - Streamlit 前端（旧）：http://localhost:8501
 - API 文档：http://localhost:7000/docs
 - MCP 服务：http://localhost:7000/api/mcp
@@ -142,7 +142,7 @@ python run.py
 
 #### 4. 访问服务
 
-- **React 前端** (新): http://localhost:3000
+- **React 前端** (新): http://localhost:1000
 - **Streamlit 前端** (旧): http://localhost:8501
 - **API 文档**: http://localhost:7000/docs
 - **MCP 服务**: http://localhost:7000/api/mcp

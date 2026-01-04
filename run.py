@@ -131,7 +131,7 @@ class ReactProxyHandler(http.server.SimpleHTTPRequestHandler):
             print(f"  [API] {args[0]}")
 
 
-def run_react(port=3000):
+def run_react(port=1000):
     """启动 React 前端（使用内置 HTTP 服务器）"""
     print(f"🌐 启动 React 前端服务 (端口 {port})...")
     
@@ -154,7 +154,7 @@ def run_web(frontend_type=DEFAULT_FRONTEND):
 
 def run_all(frontend_type=DEFAULT_FRONTEND):
     """同时启动 API 和前端服务"""
-    web_port = 3000 if frontend_type == "react" else 8501
+    web_port = 1000 if frontend_type == "react" else 8501
     web_url = f"http://localhost:{web_port}"
     
     print("=" * 50)
@@ -210,7 +210,7 @@ def show_help():
     print("服务地址:")
     print("  API 服务: http://localhost:7000")
     print("  API 文档: http://localhost:7000/docs")
-    print("  React 前端: http://localhost:3000")
+    print("  React 前端: http://localhost:1000")
     print("  Streamlit 前端: http://localhost:8501")
     print("  MCP 服务: http://localhost:7000/api/mcp")
     print()

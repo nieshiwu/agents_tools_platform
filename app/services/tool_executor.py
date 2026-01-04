@@ -189,9 +189,9 @@ class ToolExecutor:
             execution_time = int((time.time() - start_time) * 1000)
             
             # 处理结果中的文件下载 URL
-            print(f"[DEBUG] Before processing: {type(result)} - {result}")
+            # print(f"[DEBUG] Before processing: {type(result)} - {result}")
             result = self._process_result_download_urls(result)
-            print(f"[DEBUG] After processing: {result}")
+            # print(f"[DEBUG] After processing: {result}")
             
             # Combine result with any printed output
             if output:
