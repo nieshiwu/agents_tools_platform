@@ -122,6 +122,7 @@ class ToolExecutor:
         处理工具返回结果，为文件路径生成下载 URL
         
         检测结果中的文件路径字段，自动注册并填充 download_url
+        支持单个结果和批量结果（results 数组）
         """
         if not isinstance(result, dict):
             return result
@@ -129,6 +130,7 @@ class ToolExecutor:
         # 检测常见的文件路径字段
         file_path_keys = ['image_path', 'pdf_path', 'file_path', 'output_path']
         
+        # 处理顶层文件路径
         for key in file_path_keys:
             if key in result and result[key]:
                 file_path = result[key]
@@ -137,6 +139,27 @@ class ToolExecutor:
                     if result.get('download_url') is None:
                         result['download_url'] = self._register_file_download(file_path)
                     break
+        
+        # 处理批量结果中的嵌套文件路径（results 数组）
+        if 'results' in result and isinstance(result['results'], list):
+            for item in result['results']:
+                if isinstance(item, dict):
+                    for key in file_path_keys:
+                        if key in item and item[key]:
+                            file_path = item[key]
+                            if isinstance(file_path, str) and os.path.exists(file_path):
+                                if item.get('download_url') is None:
+                                    item['download_url'] = self._register_file_download(file_path)
+                                break
+        
+        # 处理 file_mappings 数组
+        if 'file_mappings' in result and isinstance(result['file_mappings'], list):
+            for mapping in result['file_mappings']:
+                if isinstance(mapping, dict):
+                    output_path = mapping.get('output')
+                    if output_path and isinstance(output_path, str) and os.path.exists(output_path):
+                        if mapping.get('download_url') is None:
+                            mapping['download_url'] = self._register_file_download(output_path)
         
         return result
     
@@ -170,7 +193,9 @@ class ToolExecutor:
             # Execute the tool
             # Capture stdout
             old_stdout = sys.stdout
-            sys.stdout = StringIO()
+            captured_stdout = StringIO()
+            sys.stdout = captured_stdout
+            output = ""
             
             try:
                 # 处理参数格式 - 确保正确传递给 LangChain tool
@@ -183,15 +208,20 @@ class ToolExecutor:
                 
                 result = tool_obj.invoke(actual_args)
             finally:
-                output = sys.stdout.getvalue()
+                # 安全获取捕获的输出
+                try:
+                    if hasattr(captured_stdout, 'getvalue'):
+                        output = captured_stdout.getvalue()
+                except Exception:
+                    pass
                 sys.stdout = old_stdout
             
             execution_time = int((time.time() - start_time) * 1000)
             
             # 处理结果中的文件下载 URL
-            print(f"[DEBUG] Before processing: {type(result)} - {result}")
+            # print(f"[DEBUG] Before processing: {type(result)} - {result}")
             result = self._process_result_download_urls(result)
-            print(f"[DEBUG] After processing: {result}")
+            # print(f"[DEBUG] After processing: {result}")
             
             # Combine result with any printed output
             if output:

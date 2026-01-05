@@ -6,6 +6,13 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    # 安装LibreOffice完整套件（核心）
+    libreoffice \
+    # LibreOffice在无头环境（容器无桌面）运行所需的额外依赖（slim镜像缺失）
+    libxext6 \
+    libxrender1 \
+    libfontconfig1 \
+    libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for caching
