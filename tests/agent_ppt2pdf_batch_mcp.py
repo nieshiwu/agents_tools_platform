@@ -40,8 +40,8 @@ except ImportError:
 
 
 load_dotenv()
-# MCP_API_BASE = os.getenv("MCP_API_BASE", "http://192.168.0.197:8000/api")
-MCP_API_BASE = os.getenv("MCP_API_BASE", "http://localhost:7000/api")
+MCP_API_BASE = os.getenv("MCP_API_BASE", "http://192.168.0.197:8000/api")
+# MCP_API_BASE = os.getenv("MCP_API_BASE", "http://localhost:7000/api")
 MODEL_NAME = os.getenv("AGENT_MODEL", "openai:deepseek-v3")
 API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
@@ -220,7 +220,7 @@ Always report the download_url(s) to the user so they can download the converted
     )
 
     # 选择演示模式: single（单文件）或 multi（多文件）
-    demo_mode = os.getenv("DEMO_MODE", "single")
+    demo_mode = os.getenv("DEMO_MODE", "multi")
     
     tmp_dir = Path(tempfile.mkdtemp())
     
